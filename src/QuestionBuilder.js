@@ -1,6 +1,6 @@
 import React, {useState, useRef, useEffect} from 'react';
-import {Button, Form, Card, Row, Col, Table, Alert} from 'react-bootstrap';
-import {FaTrash, FaPlus, FaEdit, FaGripVertical, FaCloudUploadAlt} from 'react-icons/fa';
+import {Button, Form, Card, Row, Col, Table} from 'react-bootstrap';
+import {FaTrash, FaPlus, FaEdit, FaGripVertical} from 'react-icons/fa';
 import {DragDropContext, Droppable, Draggable} from '@hello-pangea/dnd';
 
 const QuestionBuilder = () => {
@@ -12,12 +12,6 @@ const QuestionBuilder = () => {
       options: [''],
       rows: [''],
       isEditing: false,
-      // New file-specific properties
-      fileConfig: {
-        multiple: false,
-        accept: '*',
-        maxSize: 10, // in MB
-      },
     },
   ]);
   const formRef = useRef(null);
@@ -76,12 +70,6 @@ const QuestionBuilder = () => {
           options: isCompatibleChange ? q.options : compatibleTypes.includes(newType) ? [''] : [],
           // Only keep rows if new type is grid
           rows: newType === 'grid' ? (q.type === 'grid' ? q.rows : ['']) : [],
-          // Reset fileConfig if not file type
-          fileConfig: newType === 'file' ? (q.type === 'file' ? q.fileConfig : {
-            multiple: false,
-            accept: '*',
-            maxSize: 10,
-          }) : null,
         };
       })
     );
@@ -107,22 +95,6 @@ const QuestionBuilder = () => {
           ? {
               ...q,
               rows: q.rows.map((row, i) => (i === idx ? value : row)),
-            }
-          : q
-      )
-    );
-  };
-
-  const handleFileConfigChange = (qid, field, value) => {
-    setQuestions(
-      questions.map((q) =>
-        q.id === qid
-          ? {
-              ...q,
-              fileConfig: {
-                ...q.fileConfig,
-                [field]: value,
-              },
             }
           : q
       )
@@ -164,11 +136,8 @@ const QuestionBuilder = () => {
   };
 
   const addQuestion = () => {
-    const newId = String(
-      questions.length > 0
-        ? Math.max(...questions.map((q) => Number.parseInt(q.id, 10))) + 1
-        : 1
-    );    setQuestions([
+    const newId = String(questions.length > 0 ? Math.max(...questions.map((q) => parseInt(q.id))) + 1 : 1);
+    setQuestions([
       ...questions,
       {
         id: newId,
@@ -177,64 +146,12 @@ const QuestionBuilder = () => {
         options: [''],
         rows: [''],
         isEditing: true,
-        fileConfig: {
-          multiple: false,
-          accept: '*',
-          maxSize: 10,
-        },
       },
     ]);
   };
 
-  // Custom file input styling
-  const FileInput = ({question}) => {
-    const inputRef = useRef(null);
-    
-    const handleClick = () => {
-      inputRef.current.click();
-    };
-    
-    return (
-      <div className="file-upload-container">
-        <input
-          type="file"
-          ref={inputRef}
-          style={{display: 'none'}}
-          multiple={question.fileConfig?.multiple || false}
-          accept={question.fileConfig?.accept || '*'}
-          onChange={(e) => {
-            if (question.fileConfig?.maxSize) {
-              const maxSizeBytes = question.fileConfig.maxSize * 1024 * 1024;
-              const oversizedFiles = Array.from(e.target.files).filter(
-                (file) => file.size > maxSizeBytes
-              );
-              
-              if (oversizedFiles.length > 0) {
-                alert(`Some files exceed the maximum size of ${question.fileConfig.maxSize}MB`);
-                e.target.value = ''; // Clear the input
-              }
-            }
-          }}
-        />
-        <div 
-          className="file-upload-area p-4 text-center border rounded"
-          onClick={handleClick}
-          style={{
-            cursor: 'pointer',
-            backgroundColor: '#f8f9fa',
-            borderStyle: 'dashed',
-          }}
-        >
-          <FaCloudUploadAlt size={48} className="mb-3" style={{color: '#6c757d'}} />
-          <h5>Drag and drop files here or click to browse</h5>
-          <p className="text-muted">
-            {question.fileConfig?.multiple ? 'Multiple files allowed' : 'Single file only'} • 
-            Max size: {question.fileConfig?.maxSize || 10}MB • 
-            {question.fileConfig?.accept === '*' ? ' All file types' : ` ${question.fileConfig?.accept}`}
-          </p>
-        </div>
-      </div>
-    );
+  const deleteQuestion = (id) => {
+    setQuestions(questions.filter((q) => q.id !== id));
   };
 
   return (
@@ -258,15 +175,27 @@ const QuestionBuilder = () => {
                                 <>
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <Form.Label>Question {index + 1}</Form.Label>
-                                    <Button
-                                      variant="outline-secondary"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleEdit(q.id);
-                                      }}>
-                                      Preview
-                                    </Button>
+                                    <div>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        className="me-2"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteQuestion(q.id);
+                                        }}>
+                                        Delete
+                                      </Button>
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleEdit(q.id);
+                                        }}>
+                                        Preview
+                                      </Button>
+                                    </div>
                                   </div>
 
                                   <Form.Group className="mb-2">
@@ -293,7 +222,6 @@ const QuestionBuilder = () => {
                                         <option value="dropdown">Dropdown</option>
                                         <option value="grid">Multiple Choice Grid</option>
                                         <option value="date">Date</option>
-                                        <option value="file">File Upload</option>
                                       </Form.Select>
                                     </Col>
                                   </Form.Group>
@@ -453,85 +381,33 @@ const QuestionBuilder = () => {
                                     </>
                                   )}
                                   {q.type === 'date' && <Form.Control type="date" disabled />}
-                                  
-                                  {q.type === 'file' && (
-                                    <>
-                                      <Form.Group as={Row} className="mb-3 mt-3">
-                                        <Form.Label column sm={3}>
-                                          Multiple Files
-                                        </Form.Label>
-                                        <Col sm={9} className="d-flex align-items-center">
-                                          <Form.Check
-                                            type="switch"
-                                            checked={q.fileConfig?.multiple || false}
-                                            onChange={(e) => 
-                                              handleFileConfigChange(q.id, 'multiple', e.target.checked)
-                                            }
-                                          />
-                                          <Form.Text className="ms-2">
-                                            Allow users to upload multiple files
-                                          </Form.Text>
-                                        </Col>
-                                      </Form.Group>
-
-                                      <Form.Group as={Row} className="mb-3">
-                                        <Form.Label column sm={3}>
-                                          File Types
-                                        </Form.Label>
-                                        <Col sm={9}>
-                                          <Form.Select
-                                            value={q.fileConfig?.accept || '*'}
-                                            onChange={(e) => 
-                                              handleFileConfigChange(q.id, 'accept', e.target.value)
-                                            }>
-                                            <option value="*">Any file type</option>
-                                            <option value="image/*">Images only</option>
-                                            <option value=".pdf,.doc,.docx">Documents (PDF, Word)</option>
-                                            <option value=".jpg,.jpeg,.png">JPEG/PNG images</option>
-                                            <option value=".csv,.xlsx">Spreadsheets</option>
-                                            <option value="audio/*">Audio files</option>
-                                            <option value="video/*">Video files</option>
-                                          </Form.Select>
-                                        </Col>
-                                      </Form.Group>
-
-                                      <Form.Group as={Row} className="mb-3">
-                                        <Form.Label column sm={3}>
-                                          Max File Size (MB)
-                                        </Form.Label>
-                                        <Col sm={9}>
-                                          <Form.Control
-                                            type="number"
-                                            min="1"
-                                            max="100"
-                                            value={q.fileConfig?.maxSize || 10}
-                                            onChange={(e) => 
-                                              handleFileConfigChange(q.id, 'maxSize', parseInt(e.target.value))
-                                            }
-                                          />
-                                        </Col>
-                                      </Form.Group>
-
-                                      <Alert variant="info" className="mt-3">
-                                        <FileInput question={q} />
-                                      </Alert>
-                                    </>
-                                  )}
                                 </>
                               ) : (
                                 <>
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <h5>{q.question || 'Untitled Question'}</h5>
-                                    <Button
-                                      variant="outline-secondary"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleEdit(q.id);
-                                      }}>
-                                      <FaEdit className="me-1" />
-                                      Edit
-                                    </Button>
+                                    <div>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        className="me-2"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteQuestion(q.id);
+                                        }}>
+                                        Delete
+                                      </Button>
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleEdit(q.id);
+                                        }}>
+                                        <FaEdit className="me-1" />
+                                        Edit
+                                      </Button>
+                                    </div>
                                   </div>
 
                                   {q.type === 'short' && <Form.Control type="text" placeholder="Your answer" />}
@@ -592,9 +468,6 @@ const QuestionBuilder = () => {
                                     </Form.Select>
                                   )}
                                   {q.type === 'date' && <Form.Control type="date" />}
-                                  {q.type === 'file' && (
-                                    <FileInput question={q} />
-                                  )}
                                 </>
                               )}
                             </div>
