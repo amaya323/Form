@@ -4,6 +4,11 @@ import {FaTrash, FaPlus, FaEdit, FaGripVertical} from 'react-icons/fa';
 import {DragDropContext, Droppable, Draggable} from '@hello-pangea/dnd';
 
 const QuestionBuilder = () => {
+  const [formInfo, setFormInfo] = useState({
+    title: '',
+    description: ''
+  });
+  
   const [questions, setQuestions] = useState([
     {
       id: '1',
@@ -54,6 +59,11 @@ const QuestionBuilder = () => {
   const handleQuestionChange = (id, value) => {
     setQuestions(questions.map((q) => (q.id === id ? {...q, question: value} : q)));
   };
+
+  const handleFormInfoChange = (field, value) => {
+    setFormInfo(prev => ({...prev, [field]: value}));
+  };
+
 
   const handleTypeChange = (id, newType) => {
     setQuestions(
@@ -154,8 +164,38 @@ const QuestionBuilder = () => {
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
+  
+
   return (
     <Form ref={formRef}>
+      <Card className="mb-3">
+        <Card.Body>
+          <div className="d-flex align-items-start">
+            <div style={{flex: 1}}>
+              <Form.Group className="mb-3">
+                <Form.Label>Form Title</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter form title"
+                  value={formInfo.title}
+                  onChange={(e) => handleFormInfoChange('title', e.target.value)}
+                />
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Form Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Enter form description"
+                  value={formInfo.description}
+                  onChange={(e) => handleFormInfoChange('description', e.target.value)}
+                />
+              </Form.Group>
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="questions">
           {(provided) => (
@@ -484,7 +524,7 @@ const QuestionBuilder = () => {
         </Droppable>
       </DragDropContext>
       <Button variant="success" onClick={addQuestion}>
-        + Add Question
+        Add Question
       </Button>
     </Form>
   );
