@@ -3,12 +3,103 @@ import {Button, Form, Card, Row, Col, Table} from 'react-bootstrap';
 import {FaTrash, FaPlus, FaEdit, FaGripVertical} from 'react-icons/fa';
 import {DragDropContext, Droppable, Draggable} from '@hello-pangea/dnd';
 
+
+
 const QuestionBuilder = () => {
+  const createForm = async () => {
+    // Basic validation
+    if (!formInfo.title.trim()) {
+      alert('Please enter a form title');
+      return;
+    }
+  
+    if (questions.length === 0) {
+      alert('Please add at least one question');
+      return;
+    }
+  
+    // Validate all questions have content
+    const emptyQuestions = questions.some(q => !q.question.trim());
+    if (emptyQuestions) {
+      alert('All questions must have content');
+      return;
+    }
+  
+    // Prepare the form data for submission
+    const formData = {
+      title: formInfo.title,
+      description: formInfo.description,
+      questions: questions.map(q => ({
+        question: q.question,
+        type: q.type,
+        options: q.options.filter(opt => opt.trim()), // Remove empty options
+        rows: q.rows.filter(row => row.trim()) // Remove empty rows
+      })),
+      createdAt: new Date().toISOString()
+    };
+  
+    try {
+      // Here you would typically send to your backend API
+      console.log('Form data to submit:', formData);
+      
+      // Mock API call (replace with actual fetch/axios call)
+      const response = await submitFormToBackend(formData);
+      
+      alert(`Form created successfully! ID: ${response.id}`);
+      // You might want to reset the form or redirect here
+    } catch (error) {
+      console.error('Error creating form:', error);
+      alert('Failed to create form. Please try again.');
+    }
+  };
+  
+  // Mock function to simulate API call
+  const submitFormToBackend = async (formData) => {
+    const payload = JSON.stringify({
+      title: formData.title,
+      description: formData.description,
+      questions: formData.questions.map(q => ({
+        question: q.question,
+        type: q.type,
+        required: q.required,
+        options: q.options,
+        rows: q.rows
+      }))
+    });
+    
+    console.log("Payload size in characters:", payload.length);
+    
+    const response = await fetch('http://localhost:3001/api/forms', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: formData.title,
+        description: formData.description,
+        questions: formData.questions.map(q => ({
+          question: q.question,
+          type: q.type,
+          required: q.required,
+          options: q.options,
+          rows: q.rows
+        }))
+      }),
+      credentials: 'omit'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create form');
+    }
+    
+    return response.json();
+  };
+
   const [formInfo, setFormInfo] = useState({
     title: '',
     description: ''
   });
-  
+
   const [questions, setQuestions] = useState([
     {
       id: '1',
@@ -17,6 +108,7 @@ const QuestionBuilder = () => {
       options: [''],
       rows: [''],
       isEditing: false,
+      required: false,
     },
   ]);
   const formRef = useRef(null);
@@ -54,6 +146,12 @@ const QuestionBuilder = () => {
             : {...q, isEditing: false} // All others should be in preview mode
       )
     );
+  };
+
+  const toggleRequired = (id) => {
+    setQuestions(questions.map(q => 
+      q.id === id ? {...q, required: !q.required} : q
+    ));
   };
 
   const handleQuestionChange = (id, value) => {
@@ -164,8 +262,6 @@ const QuestionBuilder = () => {
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
-  
-
   return (
     <Form ref={formRef}>
       <Card className="mb-3">
@@ -216,6 +312,7 @@ const QuestionBuilder = () => {
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <Form.Label>Question {index + 1}</Form.Label>
                                     <div>
+                                      
                                       <Button
                                         variant="outline-danger"
                                         size="sm"
@@ -421,6 +518,17 @@ const QuestionBuilder = () => {
                                     </>
                                   )}
                                   {q.type === 'date' && <Form.Control type="date" disabled />}
+                                  <Form.Check 
+                                    type="switch"
+                                    id={`required-switch-${q.id}`}
+                                    label={q.required ? "Required" : "Required"}
+                                    checked={q.required}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      toggleRequired(q.id);
+                                    }}
+                                    className="mt-3 me-2"
+                                  />
                                 </>
                               ) : (
                                 <>
@@ -523,9 +631,14 @@ const QuestionBuilder = () => {
           )}
         </Droppable>
       </DragDropContext>
-      <Button variant="success" onClick={addQuestion}>
-        Add Question
-      </Button>
+      <div className="d-flex justify-content-end gap-2 mt-3">
+    <Button variant="success" onClick={addQuestion}>
+      Add Question
+    </Button>
+    <Button variant="primary" onClick={createForm}>
+      Create Form
+    </Button>
+  </div>
     </Form>
   );
 };
