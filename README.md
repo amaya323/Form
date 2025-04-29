@@ -1,8 +1,9 @@
-npm install react react-dom react-bootstrap @hello-pangea/dnd react-icons bootstrap
-
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+## Run in Terminal
+npm install react react-dom react-bootstrap @hello-pangea/dnd react-icons bootstrap
 
 ## Available Scripts
 
